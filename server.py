@@ -1,8 +1,10 @@
 import socket
 import threading
+import json
 
-addresses = {}
-clients = {}
+addresses_lookup = {}
+clients_lookup = {}
+usernames_lookup = {}
 
 try:
     s = socket.socket()
@@ -15,29 +17,43 @@ s.bind(('', port))
 s.listen(5)
 
 def get_message(c,address):
-    print(f"Connection from {address}")
     while True:
+        print("<><><><><", c._closed)
+        if c._closed:
+            break
+        
         data = c.recv(1024)
 
         if not data:
             break
-        # blah = {f"{addresses[address]}":data.decode()}
-        # print({blah})
         send_message(c, address, data)
+
+    
+    # addresses.pop(address)
+    # clients.pop(c)
+    # c.close()
+    # print({'addresses':addresses, 'clients':clients})
+    
 
 
 
 def send_message(c, from_address, msg):
-    for client in clients:
+    for client in clients_lookup:
         if client != from_address:
-            clients[client].sendall(msg)
+            clients_lookup[client].sendall(msg)
 
 
 while True:
     c, address = s.accept()
-    addresses[address] = c.recv(1024).decode().split(' ')[0]
-    clients[address] = c
+    print("BEFORE IF/ELSE BLOCK", addresses_lookup)
+    name = c.recv(1024).decode().split(' ')[0]
+    if usernames_lookup.get(name) is None:
+        addresses_lookup[address] = name
+        clients_lookup[address] = c
+        usernames_lookup[name] = address
+    else:
+        c.close()
 
-    print(addresses)
+    # print("AFTER IF/ELSE BLOCK", addresses_lookup)
     thread1 = threading.Thread(target=get_message, args=(c,address), daemon= True)
     thread1.start()

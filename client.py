@@ -1,5 +1,6 @@
 import socket
 import threading
+import os
 
 s = socket.socket()
 
@@ -15,12 +16,14 @@ def get_messages(s):
         data = s.recv(1024)
 
         if not data:
+            print("Server disconnected")
             break
         print({data.decode()})
+    s.close()
+    os._exit(0)
 
 thread1 = threading.Thread(target=get_messages, args=(s,), daemon= True)
 thread1.start()
 
 while True:
     s.send(input(f"{name} >>> ").encode())
-    # thread1.join()
