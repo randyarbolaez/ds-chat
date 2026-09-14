@@ -18,14 +18,15 @@ s.listen(5)
 
 def get_message(c,address):
     while True:
-        print("<><><><><", c._closed)
         if c._closed:
             break
         
         data = c.recv(1024)
 
         if not data:
+            print("NOT DATA ?")
             break
+        print("hello", data)
         send_message(c, address, data)
 
     
@@ -46,13 +47,16 @@ def send_message(c, from_address, msg):
 while True:
     c, address = s.accept()
     print("BEFORE IF/ELSE BLOCK", addresses_lookup)
-    name = c.recv(1024).decode().split(' ')[0]
+    data = c.recv(1024).decode().split(' ')
+    name = data[0]
     if usernames_lookup.get(name) is None:
         addresses_lookup[address] = name
         clients_lookup[address] = c
         usernames_lookup[name] = address
     else:
         c.close()
+    if len(address) > 1:
+        send_message(c, address, " ".join(data).encode())
 
     # print("AFTER IF/ELSE BLOCK", addresses_lookup)
     thread1 = threading.Thread(target=get_message, args=(c,address), daemon= True)
