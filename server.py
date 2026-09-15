@@ -18,22 +18,24 @@ s.listen(5)
 
 def get_message(c,address):
     while True:
-        if c._closed:
-            break
-        
         data = c.recv(1024)
 
-        if not data:
-            print("NOT DATA ?")
+        if c._closed or not data:
+            goodbye_message = f"{addresses_lookup[address]} has left the chat"
+            print(goodbye_message)
+            usernames_lookup.pop(addresses_lookup[address])
+            addresses_lookup.pop(address)
+            clients_lookup.pop(address)
+            send_message(c, address, goodbye_message.encode())
+            c.close()
+            print({'addresses':addresses_lookup, 'clients':clients_lookup, 'usernames': usernames_lookup})
             break
-        print("hello", data)
-        send_message(c, address, data)
 
-    
-    # addresses.pop(address)
-    # clients.pop(c)
-    # c.close()
-    # print({'addresses':addresses, 'clients':clients})
+        # if not data:
+        #     print("NOT DATA ?")
+        #     break
+        # print("data <><><><>")
+        send_message(c, address, data)
     
 
 
