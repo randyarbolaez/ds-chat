@@ -16,7 +16,7 @@ def get_messages(s):
         data = s.recv(1024)
 
         if not data:
-            print("Server disconnected")
+            print("Disconnected from server")
             break
         print({data.decode()})
     s.close()
