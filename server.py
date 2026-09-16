@@ -33,7 +33,10 @@ def get_message(c,address):
         if command == "/pm":
             to_user = data.decode().split(" ")[1]
             msg = data.decode().split(" ")[2:]
-            send_private_message(address, clients_lookup[usernames_lookup[to_user]], ' '.join(msg))
+            if usernames_lookup.get(to_user) is None:
+                c.sendall(f"WARNING: {to_user} doesn't exist.".encode())
+            else:
+                send_private_message(address, clients_lookup[usernames_lookup[to_user]], ' '.join(msg))
         else:
             send_message(address, data)
 
@@ -43,8 +46,8 @@ def send_message(from_address, msg):
         if client != from_address:
             clients_lookup[client].sendall(msg)
 
-def send_private_message(from_address, to_address, msg):
-    to_address.sendall(f"PRIVATE MESSAGE from {addresses_lookup[from_address]} : {msg}".encode())
+def send_private_message(from_address, to_socket, msg):
+    to_socket.sendall(f"PRIVATE MESSAGE from {addresses_lookup[from_address]} : {msg}".encode())
 
 
 while True:
@@ -63,3 +66,5 @@ while True:
         c.sendall("Somebody already has that name. You'll be disconnected.".encode())
         c.shutdown(socket.SHUT_WR)
         c.close()
+
+# todo ftp
