@@ -1,9 +1,23 @@
 import socket
 import threading
+import redis
+from dotenv import load_dotenv
+import os
+import sys
 
 addresses_lookup = {}
 clients_lookup = {}
 usernames_lookup = {}
+
+load_dotenv()  
+
+redis_url = os.getenv("REDIS_URL")
+
+r = redis.Redis.from_url(redis_url)
+
+pubsub = r.pubsub()
+
+pubsub.subscribe('global_chat')
 
 try:
     s = socket.socket()
@@ -11,8 +25,9 @@ try:
 except socket.error as e:
     print("Error creating socket: ", e)
 
-port = 8080
-s.bind(('', port))
+port = sys.argv[1]
+print("port <> ", port)
+s.bind(('', int(port)))
 s.listen(5)
 
 def get_message(c,address):
@@ -40,15 +55,26 @@ def get_message(c,address):
         else:
             send_message(address, data)
 
+def get_redis_message():
+    for message in pubsub.listen():
+        if message['type'] == 'message':
+            print(f"Channel:{message['channel']}")
+            print(f"Data:{message['data']}")
+            for client in clients_lookup:
+                # if addresses_lookup[client] != sender_name:
+                clients_lookup[client].sendall(message['data'])
+
     
 def send_message(from_address, msg):
-    for client in clients_lookup:
-        if client != from_address:
-            clients_lookup[client].sendall(msg)
+    username = addresses_lookup[from_address]
+    actual_message = f"{username}:{msg}"
+    r.publish('global_chat', actual_message) 
 
 def send_private_message(from_address, to_socket, msg):
     to_socket.sendall(f"PRIVATE MESSAGE from {addresses_lookup[from_address]} : {msg}".encode())
 
+thread2 = threading.Thread(target=get_redis_message, args=(), daemon= True)
+thread2.start()
 
 while True:
     c, address = s.accept()
@@ -66,5 +92,8 @@ while True:
         c.sendall("Somebody already has that name. You'll be disconnected.".encode())
         c.shutdown(socket.SHUT_WR)
         c.close()
+
+# todo clean up
+# /pm
 
 # todo ftp
