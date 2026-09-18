@@ -58,11 +58,15 @@ def get_message(c,address):
 def get_redis_message():
     for message in pubsub.listen():
         if message['type'] == 'message':
-            print(f"Channel:{message['channel']}")
             print(f"Data:{message['data']}")
-            for client in clients_lookup:
-                # if addresses_lookup[client] != sender_name:
-                clients_lookup[client].sendall(message['data'])
+            from_username = message['data'].decode().split()[0].split(":")[0]
+
+            for client in list(clients_lookup.keys()):
+                local_username = addresses_lookup.get(client)
+                if local_username == from_username:
+                    continue
+                else:
+                    clients_lookup[client].sendall(message['data'])
 
     
 def send_message(from_address, msg):

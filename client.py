@@ -1,12 +1,13 @@
 import socket
 import threading
 import os
+import sys
 
 s = socket.socket()
 
-port = 8080
+port = sys.argv[1]
 
-s.connect(('127.0.0.1', port))
+s.connect(('127.0.0.1', int(port)))
 
 name = input("What is your name? ")
 s.send(f"{name} has joined the chat".encode())
