@@ -44,6 +44,8 @@ def get_message(c,address):
             addresses_lookup.pop(address)
             clients_lookup.pop(address)
             r.hset("ports", port, int(r.hget("ports", port)) - 1)
+            if r.hget("ports", port) == 0:
+                r.hdel("ports", port)
             c.close()
             break
 
