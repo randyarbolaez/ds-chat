@@ -21,7 +21,7 @@ def get_messages(s):
             break
         print({data.decode()})
     s.close()
-    os._exit(0)
+    # os._exit(0)
 
 thread1 = threading.Thread(target=get_messages, args=(s,), daemon= True)
 thread1.start()
