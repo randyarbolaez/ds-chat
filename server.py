@@ -40,8 +40,10 @@ def get_message(c,address):
             goodbye_message = f"{addresses_lookup[address]} has left the chat"
             send_message(address, goodbye_message.encode())
             r.hdel('usernames', addresses_lookup[address])
+            usernames_lookup.pop(addresses_lookup[address])
             addresses_lookup.pop(address)
             clients_lookup.pop(address)
+            r.hset("ports", port, int(r.hget("ports", port)) - 1)
             c.close()
             break
 
@@ -62,12 +64,11 @@ def get_redis_message():
         for message in pubsub.listen():
             if message['type'] == 'message':
                 if message['channel'].decode() == ('node_'+port):
-                    from_user = message['data'].decode().split(":")[0]
-                    to_user = message['data'].decode().split(":")[1]
-                    message = message['data'].decode().split(":")[2]
-                    clients_lookup[usernames_lookup[to_user]].sendall(f"PRIVATE MESSAGE from {str(from_user)} : {message}".encode())
+                    from_user = message['data'].decode().split(":",2)[0]
+                    to_user = message['data'].decode().split(":",2)[1]
+                    chat_message = message['data'].decode().split(":",2)[2]
+                    clients_lookup[usernames_lookup[to_user]].sendall(f"PRIVATE MESSAGE from {str(from_user)} : {chat_message}".encode())
                 else:
-                    print("SENDING IT TO EVERYBOdy")
                     from_username = message['data'].decode().split()[0].split(":")[0]
                     for client in list(clients_lookup.keys()):
                         local_username = addresses_lookup.get(client)
@@ -94,13 +95,16 @@ while True:
     c, address = s.accept()
     data = c.recv(1024).decode().split(' ')
     name = data[0]
-
-    # if usernames_lookup.get(name) is None:
-    if r.hget("usernames", name) is None or len(addresses_lookup) == 0:
+    existing_port = r.hget("usernames", name)
+    if existing_port is None or existing_port.decode() != port:
         addresses_lookup[address] = name
         clients_lookup[address] = c
         usernames_lookup[name] = address
         r.hset("usernames", name, port)
+        if r.hget("ports", port) is None:
+            r.hset("ports", port, 1)
+        else:
+            r.hset("ports", port, int(r.hget("ports", port)) + 1)
         print(r.hgetall("usernames"))
         if len(address) > 1:
                 send_message(address, " ".join(data).encode())
@@ -110,3 +114,5 @@ while True:
         c.sendall("Somebody already has that name. You'll be disconnected.".encode())
         c.shutdown(socket.SHUT_WR)
         c.close()
+
+# semaphore
